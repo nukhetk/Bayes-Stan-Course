@@ -92,14 +92,13 @@ Compute the posterior probability that attractiveness is unimportant (has a slop
 
 ```{r post-prob}
 samples <- as.matrix(fit1)[,1:5] ## throw out __lp
-
-## ...
+mean(samples[,"attractiveness"] <= 0)
 ```
 
 Plot a histogram of the posterior of attractiveness
 
 ```{r post-hist}
-## ...
+hist(samples[,"attractiveness"], main = "Posterior Distribution", xlab = "Attractiveness")
 ```
 
 ## Making Predictions
@@ -131,13 +130,17 @@ Calculate first a single value, then plot the posterior distribution of estimate
 ```{r high-low-pred}
 pred.low  <- pred
 pred.high <- pred
+pred.low[2]  <- with(speed_dating,
+  mean(attractiveness) - 0.5 * sd(attractiveness))
+pred.high[2] <- with(speed_dating,
+  mean(attractiveness) + 0.5 * sd(attractiveness))
 
-## ...
+plogis(crossprod(pred.high, samples[1,])) - plogis(crossprod(pred.low,  samples[1,]))
 ```
 
 ```{r high-low-hist}
-
-## ...
+hist(plogis(tcrossprod(pred.high, samples)) - plogis(tcrossprod(pred.low,  samples)),
+    main = "High/Low Attractiveness", xlab = "Difference in Would-Date Prob")
 ```
 
 ## Graphing Fitted Lines
@@ -159,7 +162,8 @@ for (i in seq_len(n.vals)) {
 
 ## draw observed points
 with(speed_dating,
-  plot(attractiveness, wouldDate, pch = 20))
+  plot(attractiveness, wouldDate, pch = 20,
+       main = "Single Draw", xlab = "attractiveness", ylab = "Prob Would Date"))
 ## connect predictions with lines
 lines(xVals, yVals)
 ```
@@ -172,7 +176,8 @@ Because Stan gives us a whole collection of samples from the posterior, we can s
 n.fits <- 20
 
 with(speed_dating,
-  plot(attractiveness, wouldDate, pch = 20))
+  plot(attractiveness, wouldDate, pch = 20,
+       main = "Posterior Uncertainty", xlab = "attractiveness", ylab = "Prob Would Date"))
 
 ## repeat the above 20 times
 for (j in seq_len(n.fits)) {
@@ -196,8 +201,30 @@ Produce a similar plot for another coefficient
 
 ```{r graphing-uncertainty-exercise}
 pred[2] <- mean(speed_dating$attractiveness)
-## e.g.: xRange <- range(speed_dating$sincerity)
-## ...
+
+xRange <- range(speed_dating$sincerity)
+
+n.vals <- 101
+xVals <- seq(xRange[1], xRange[2], length.out = 101)
+n.fits <- 20
+
+with(speed_dating,
+  plot(sincerity, wouldDate, pch = 20,
+       main = "Posterior Uncertainty", xlab = "sincerity", ylab = "Prob Would Date"))
+
+for (j in seq_len(n.fits)) {
+  yVals <- rep(NA, n.vals)
+  for (i in seq_len(n.vals)) {
+    pred[3] <- xVals[i]
+    yVals[i] <- plogis(crossprod(pred, samples[j,]))
+  }
+  lines(xVals, yVals, col = "gray")
+}
+for (i in seq_len(n.vals)) {
+  pred[3] <- xVals[i]
+  yVals[i] <- plogis(crossprod(pred, apply(samples, 2, mean)))
+}
+lines(xVals, yVals)
 ```
 
 ## Concluding Thoughts
